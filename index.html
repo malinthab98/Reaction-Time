@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Auto‑Color Dual-Hand Reaction Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    .container {
+      display: flex;
+      justify-content: center;
+      margin: 20px;
+    }
+    .hand {
+      margin: 0 20px;
+    }
+    .hand-label {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .color-button {
+      width: 60px;
+      height: 60px;
+      margin: 5px 0;
+      border: 2px solid black;
+      border-radius: 50%;
+      opacity: 0.6;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .active {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+    #controls button {
+      padding: 10px 20px;
+      margin: 10px 5px;
+      font-size: 1em;
+      cursor: pointer;
+      user-select: none;
+    }
+    .records {
+      text-align: left;
+      max-width: 300px;
+      margin: 20px auto 5px auto;
+    }
+    #averageTime {
+      max-width: 300px;
+      margin: 5px auto 20px auto;
+      text-align: left;
+      font-weight: bold;
+    }
+    /* Responsive for mobile/tablet */
+    @media (max-width: 600px) {
+      body {
+        padding: 10px;
+      }
+      .container {
+        flex-direction: column;
+        margin: 10px 0;
+      }
+      .hand {
+        margin: 10px 0;
+      }
+      .color-button {
+        width: 80px;
+        height: 80px;
+        margin: 10px 0;
+      }
+      #controls button {
+        padding: 15px 25px;
+        font-size: 1.2em;
+        margin: 10px 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Dual-Hand Reaction Game (10 Rounds)</h1>
+  <div id="roundInfo">Round 1/10</div>
+  <div class="container">
+    <div class="hand">
+      <div class="hand-label">Left Hand</div>
+      <div id="leftCol"></div>
+    </div>
+    <div class="hand">
+      <div class="hand-label">Right Hand</div>
+      <div id="rightCol"></div>
+    </div>
+  </div>
+  <div id="reactionTime">Reaction Time: -- ms</div>
+  <div id="controls">
+    <button id="startBtn">Start Round</button>
+    <button id="resetBtn" disabled>Reset Game</button>
+    <button id="fullscreenBtn">Fullscreen</button>
+  </div>
+  <div class="records">
+    <h3>Reaction Times:</h3>
+    <ul id="recordsList"></ul>
+  </div>
+  <div id="averageTime">Average Reaction Time: -- ms</div>
+
+<script>
+  const NUM_PER_HAND = 5, TOTAL_ROUNDS = 10;
+  let round = 1, reactionTimes = [], expectedIdx = null, startTime = 0, gameActive = false;
+
+  const roundInfo = document.getElementById('roundInfo'),
+        rtDisplay = document.getElementById('reactionTime'),
+        recordsList = document.getElementById('recordsList'),
+        averageTimeDisplay = document.getElementById('averageTime'),
+        startBtn = document.getElementById('startBtn'),
+        resetBtn = document.getElementById('resetBtn'),
+        fullscreenBtn = document.getElementById('fullscreenBtn'),
+        leftCol = document.getElementById('leftCol'),
+        rightCol = document.getElementById('rightCol');
+
+  const leftButtons = [];
+  const rightButtons = [];
+
+  function getRandomColor() {
+    return '#' + Math.floor(Math.random() * 0x1000000).toString(16).padStart(6,'0');
+  }
+
+  // Create left hand buttons
+  for (let i = 0; i < NUM_PER_HAND; i++) {
+    const btn = document.createElement('div');
+    btn.className = 'color-button';
+    btn.dataset.idx = i;  // 0 to 4 for left
+    btn.dataset.hand = 'left';
+    btn.addEventListener('click', onButtonClick);
+    leftCol.appendChild(btn);
+    leftButtons.push(btn);
+  }
+
+  // Create right hand buttons
+  for (let i = 0; i < NUM_PER_HAND; i++) {
+    const btn = document.createElement('div');
+    btn.className = 'color-button';
+    btn.dataset.idx = i + NUM_PER_HAND;  // 5 to 9 for right
+    btn.dataset.hand = 'right';
+    btn.addEventListener('click', onButtonClick);
+    rightCol.appendChild(btn);
+    rightButtons.push(btn);
+  }
+
+  function onButtonClick(e) {
+    if (!gameActive) return;
+    const btn = e.target;
+    const idx = Number(btn.dataset.idx);
+    if (idx === expectedIdx) {
+      const reaction = Date.now() - startTime;
+      const hand = btn.dataset.hand === 'left' ? 'Left' : 'Right';
+      reactionTimes.push({ round, reaction, hand });
+      rtDisplay.textContent = `Reaction Time: ${reaction} ms`;
+      recordsList.innerHTML += `<li>R${round} (${hand}): ${reaction} ms</li>`;
+      updateAverageTime();
+      gameActive = false;
+      deactivateButtons();
+      if (round < TOTAL_ROUNDS) {
+        round++;
+        setTimeout(initRound, 1000);
+      } else {
+        alert('✅ All rounds completed!');
+        startBtn.disabled = true;
+        resetBtn.disabled = false;
+      }
+    } else {
+      alert('❌ Wrong button!');
+    }
+  }
+
+  function deactivateButtons() {
+    leftButtons.forEach(btn => btn.classList.remove('active'));
+    rightButtons.forEach(btn => btn.classList.remove('active'));
+  }
+
+  function updateAverageTime() {
+    if (reactionTimes.length === 0) {
+      averageTimeDisplay.textContent = 'Average Reaction Time: -- ms';
+      return;
+    }
+    const total = reactionTimes.reduce((sum, r) => sum + r.reaction, 0);
+    const avg = Math.round(total / reactionTimes.length);
+    averageTimeDisplay.textContent = `Average Reaction Time: ${avg} ms`;
+  }
+
+  function initRound() {
+    // Generate 5 random colors, assign each pair the same color
+    for (let i = 0; i < NUM_PER_HAND; i++) {
+      const color = getRandomColor();
+      leftButtons[i].style.background = color;
+      rightButtons[i].style.background = color;
+      leftButtons[i].classList.remove('active');
+      rightButtons[i].classList.remove('active');
+    }
+
+    // Pick a random button index among all 10 buttons (0-9)
+    expectedIdx = Math.floor(Math.random() * NUM_PER_HAND * 2);
+
+    // Highlight the expected button
+    if (expectedIdx < NUM_PER_HAND) {
+      leftButtons[expectedIdx].classList.add('active');
+    } else {
+      rightButtons[expectedIdx - NUM_PER_HAND].classList.add('active');
+    }
+
+    startTime = Date.now();
+    gameActive = true;
+    roundInfo.textContent = `Round ${round}/${TOTAL_ROUNDS}`;
+    rtDisplay.textContent = 'Reaction Time: -- ms';
+    startBtn.disabled = true;
+    resetBtn.disabled = false;
+  }
+
+  startBtn.addEventListener('click', initRound);
+  resetBtn.addEventListener('click', () => {
+    round = 1;
+    reactionTimes = [];
+    gameActive = false;
+    deactivateButtons();
+    recordsList.innerHTML = '';
+    updateAverageTime();
+    roundInfo.textContent = `Round 1/${TOTAL_ROUNDS}`;
+    rtDisplay.textContent = 'Reaction Time: -- ms';
+    startBtn.disabled = false;
+    resetBtn.disabled = true;
+  });
+
+  fullscreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      fullscreenBtn.textContent = 'Exit Fullscreen';
+    } else {
+      document.exitFullscreen();
+      fullscreenBtn.textContent = 'Fullscreen';
+    }
+  });
+</script>
+</body>
+</html>
