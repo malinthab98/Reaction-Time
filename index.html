@@ -105,7 +105,7 @@
     <h3>Reaction Times:</h3>
     <ul id="recordsList"></ul>
   </div>
-  <div id="averageTime">Average Reaction Time: -- ms</div>
+  <div id="averageTime">Average Reaction Time: -- ms / -- s</div>
 
 <script>
   const NUM_PER_HAND = 5, TOTAL_ROUNDS = 10;
@@ -183,16 +183,16 @@
 
   function updateAverageTime() {
     if (reactionTimes.length === 0) {
-      averageTimeDisplay.textContent = 'Average Reaction Time: -- ms';
+      averageTimeDisplay.textContent = 'Average Reaction Time: -- ms / -- s';
       return;
     }
     const total = reactionTimes.reduce((sum, r) => sum + r.reaction, 0);
     const avg = Math.round(total / reactionTimes.length);
-    averageTimeDisplay.textContent = `Average Reaction Time: ${avg} ms`;
+    const avgSeconds = (avg / 1000).toFixed(2); // in seconds with 2 decimals
+    averageTimeDisplay.textContent = `Average Reaction Time: ${avg} ms / ${avgSeconds} s`;
   }
 
   function initRound() {
-    // Generate 5 random colors, assign each pair the same color
     for (let i = 0; i < NUM_PER_HAND; i++) {
       const color = getRandomColor();
       leftButtons[i].style.background = color;
@@ -201,10 +201,7 @@
       rightButtons[i].classList.remove('active');
     }
 
-    // Pick a random button index among all 10 buttons (0-9)
     expectedIdx = Math.floor(Math.random() * NUM_PER_HAND * 2);
-
-    // Highlight the expected button
     if (expectedIdx < NUM_PER_HAND) {
       leftButtons[expectedIdx].classList.add('active');
     } else {
